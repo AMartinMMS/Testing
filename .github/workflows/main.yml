@@ -36,11 +36,11 @@ jobs:
 
       - name: Extract HTML from responses
         run: node scripts/extractAllHtml.js
-
+      
       - name: Commit and push HTML content
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git add content/*.html
-          git commit -m "Update SFMC HTML content"
-          git push
+          git add content/*.html || echo "No HTML files to add"
+          git diff --cached --quiet || git commit -m "Update SFMC HTML content"
+          git push || echo "No changes to push"
