@@ -7,12 +7,9 @@ const {
   SFMC_CLIENT_SECRET,
   SFMC_ACCOUNT_ID,
   SFMC_AUTH_BASE_URL,
-  SFMC_REST_BASE_URL
+  SFMC_REST_BASE_URL,
+  SFMC_ASSET_KEY
 } = process.env;
-
-// Load Customer Keys from JSON
-const assetListPath = path.join("content", "assets.json");
-const assetKeys = JSON.parse(fs.readFileSync(assetListPath, "utf8")).assets;
 
 async function getAccessToken() {
   const url = `${SFMC_AUTH_BASE_URL}/v2/token`;
@@ -24,14 +21,13 @@ async function getAccessToken() {
     account_id: SFMC_ACCOUNT_ID
   });
 
-  // Save auth response for debugging
   const authDebugPath = path.join("content", "auth_response.json");
   fs.writeFileSync(authDebugPath, JSON.stringify(response.data, null, 2));
 
   return response.data.access_token;
 }
 
-async function getHtmlContent(token, customerKey) {
+async function queryAssetByKey(token, customerKey) {
   const url = `${SFMC_REST_BASE_URL}/asset/v1/content/assets/query`;
 
   try {
@@ -52,35 +48,9 @@ async function getHtmlContent(token, customerKey) {
       }
     );
 
-    // Save asset query response
-    const queryDebugPath = path.join("content", `${customerKey}_response.json`);
-    fs.writeFileSync(queryDebugPath, JSON.stringify(response.data, null, 2));
-
-    if (response.data?.items?.length > 0) {
-      const asset = response.data.items[0];
-      const assetType = asset.assetType?.name;
-
-      console.log(`\n🎯 Asset Found for Key: ${customerKey}`);
-      console.log("🔍 Asset Metadata:\n", JSON.stringify(asset, null, 2));
-
-      // Only process if it's an HTML-based asset
-      if (assetType === "htmlemail" || assetType === "htmlblock" || assetType === "templatebasedemail") {
-        const htmlContent = asset.views?.html?.content || "";
-
-        if (!htmlContent.trim()) {
-          console.warn(`⚠️ Asset ${customerKey} has no HTML content.`);
-          return;
-        }
-
-        const outputPath = path.join("content", `${customerKey}.html`);
-        fs.writeFileSync(outputPath, htmlContent);
-        console.log(`✅ Saved ${customerKey}.html\n`);
-      } else {
-        console.warn(`⚠️ Asset ${customerKey} is of type "${assetType}" and not HTML-based. Skipping.`);
-      }
-    } else {
-      console.warn(`⚠️ No asset found for: ${customerKey}`);
-    }
+    const outputPath = path.join("content", `${customerKey}_response.json`);
+    fs.writeFileSync(outputPath, JSON.stringify(response.data, null, 2));
+    console.log(`✅ Saved raw response for asset "${customerKey}"`);
   } catch (error) {
     console.error(`❌ Error fetching asset ${customerKey}:`, error.message);
   }
@@ -89,12 +59,13 @@ async function getHtmlContent(token, customerKey) {
 (async () => {
   try {
     const token = await getAccessToken();
-
-    for (const customerKey of assetKeys) {
-      await getHtmlContent(token, customerKey);
+    if (!SFMC_ASSET_KEY) {
+      console.error("❌ SFMC_ASSET_KEY environment variable is not set.");
+      process.exit(1);
     }
+    await queryAssetByKey(token, SFMC_ASSET_KEY);
   } catch (error) {
-    console.error("❌ Error:", error.message);
+    console.error("❌ Unhandled error:", error.message);
     process.exit(1);
   }
 })();
