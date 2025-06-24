@@ -24,6 +24,10 @@ async function getAccessToken() {
     account_id: SFMC_ACCOUNT_ID
   });
 
+  // Save auth response for debugging
+  const authDebugPath = path.join("content", "auth_response.json");
+  fs.writeFileSync(authDebugPath, JSON.stringify(response.data, null, 2));
+
   return response.data.access_token;
 }
 
@@ -48,6 +52,10 @@ async function getHtmlContent(token, customerKey) {
       }
     );
 
+    // Save asset query response
+    const queryDebugPath = path.join("content", `${customerKey}_response.json`);
+    fs.writeFileSync(queryDebugPath, JSON.stringify(response.data, null, 2));
+
     if (response.data?.items?.length > 0) {
       const asset = response.data.items[0];
       const assetType = asset.assetType?.name;
@@ -57,7 +65,7 @@ async function getHtmlContent(token, customerKey) {
 
       // Only process if it's an HTML-based asset
       if (assetType === "htmlemail" || assetType === "htmlblock" || assetType === "templatebasedemail") {
-        const htmlContent = asset.content?.html || "";
+        const htmlContent = asset.views?.html?.content || "";
 
         if (!htmlContent.trim()) {
           console.warn(`⚠️ Asset ${customerKey} has no HTML content.`);
@@ -70,7 +78,6 @@ async function getHtmlContent(token, customerKey) {
       } else {
         console.warn(`⚠️ Asset ${customerKey} is of type "${assetType}" and not HTML-based. Skipping.`);
       }
-
     } else {
       console.warn(`⚠️ No asset found for: ${customerKey}`);
     }
