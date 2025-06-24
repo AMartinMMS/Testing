@@ -1,4 +1,4 @@
-name: Fetch SFMC HTML
+name: Fetch SFMC HTML Assets
 
 on:
   workflow_dispatch:
@@ -6,44 +6,41 @@ on:
 jobs:
   fetch-html:
     runs-on: ubuntu-latest
+    env:
+      SFMC_CLIENT_ID: ${{ secrets.SFMC_CLIENT_ID }}
+      SFMC_CLIENT_SECRET: ${{ secrets.SFMC_CLIENT_SECRET }}
+      SFMC_ACCOUNT_ID: ${{ secrets.SFMC_ACCOUNT_ID }}
+      SFMC_AUTH_BASE_URL: ${{ secrets.SFMC_AUTH_BASE_URL }}
+      SFMC_REST_BASE_URL: ${{ secrets.SFMC_REST_BASE_URL }}
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install dependencies
+      - name: Install axios
         run: npm install axios
 
-      - name: Fetch asset JSON from SFMC
-        run: node scripts/fetchAsset.js
-        env:
-          SFMC_CLIENT_ID: ${{ secrets.SFMC_CLIENT_ID }}
-          SFMC_CLIENT_SECRET: ${{ secrets.SFMC_CLIENT_SECRET }}
-          SFMC_ACCOUNT_ID: ${{ secrets.SFMC_ACCOUNT_ID }}
-          SFMC_AUTH_BASE_URL: ${{ secrets.SFMC_AUTH_BASE_URL }}
-          SFMC_REST_BASE_URL: ${{ secrets.SFMC_REST_BASE_URL }}
-          SFMC_ASSET_KEY: ${{ secrets.SFMC_ASSET_KEY }}
+      - name: Fetch SFMC JSON responses
+        run: node scripts/fetchAllAssets.js
 
-      - name: Upload raw response as artifact
+      - name: Upload raw responses as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sfmc-response
+          name: sfmc-api-responses
           path: content/*_response.json
 
-      - name: Extract HTML from JSON
-        run: node scripts/extractHtml.js
-        env:
-          SFMC_ASSET_KEY: ${{ secrets.SFMC_ASSET_KEY }}
+      - name: Extract HTML from responses
+        run: node scripts/extractAllHtml.js
 
-      - name: Commit and push HTML
+      - name: Commit and push HTML content
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add content/*.html
-          git commit -m "Update SFMC HTML content" || echo "No changes to commit"
+          git commit -m "Update SFMC HTML content"
           git push
