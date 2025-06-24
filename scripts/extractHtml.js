@@ -9,20 +9,24 @@ const assets = JSON.parse(
 for (const key of assets) {
   const jsonPath = path.join(__dirname, "..", "content", `${key}_response.json`);
   if (!fs.existsSync(jsonPath)) {
-    console.warn(`⚠️ Response file not found for ${key}`);
+    console.warn(`⚠️ JSON file not found: ${jsonPath}`);
     continue;
   }
 
   const response = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
-
   const item = response.items?.[0];
-  if (!item || !item.content) {
-    console.warn(`⚠️ No content found for ${key}`);
+
+  if (!item) {
+    console.warn(`⚠️ No items found in response for: ${key}`);
     continue;
   }
 
-  const html = item.content;
+  if (!item.content || !item.name) {
+    console.warn(`⚠️ Missing content or name for asset: ${key}`);
+    continue;
+  }
+
   const htmlPath = path.join(__dirname, "..", "content", `${item.name}.html`);
-  fs.writeFileSync(htmlPath, html, "utf-8");
-  console.log(`✅ Saved ${item.name}.html`);
+  fs.writeFileSync(htmlPath, item.content, "utf-8");
+  console.log(`✅ Extracted: ${htmlPath}`);
 }
