@@ -50,27 +50,34 @@ async function getHtmlContent(token, customerKey) {
 
     if (response.data?.items?.length > 0) {
       const asset = response.data.items[0];
+      const assetType = asset.assetType?.name;
 
       console.log(`\n🎯 Asset Found for Key: ${customerKey}`);
       console.log("🔍 Asset Metadata:\n", JSON.stringify(asset, null, 2));
 
-      const htmlContent = asset.content?.html || "";
+      // Only process if it's an HTML-based asset
+      if (assetType === "htmlemail" || assetType === "htmlblock" || assetType === "templatebasedemail") {
+        const htmlContent = asset.content?.html || "";
 
-      if (!htmlContent.trim()) {
-        console.warn(`⚠️  Asset ${customerKey} has no HTML content.`);
+        if (!htmlContent.trim()) {
+          console.warn(`⚠️ Asset ${customerKey} has no HTML content.`);
+          return;
+        }
+
+        const outputPath = path.join("content", `${customerKey}.html`);
+        fs.writeFileSync(outputPath, htmlContent);
+        console.log(`✅ Saved ${customerKey}.html\n`);
+      } else {
+        console.warn(`⚠️ Asset ${customerKey} is of type "${assetType}" and not HTML-based. Skipping.`);
       }
 
-      const outputPath = path.join("content", `${customerKey}.html`);
-      fs.writeFileSync(outputPath, htmlContent);
-      console.log(`✅ Saved ${customerKey}.html\n`);
     } else {
-      console.warn(`⚠️  No asset found for: ${customerKey}`);
+      console.warn(`⚠️ No asset found for: ${customerKey}`);
     }
   } catch (error) {
     console.error(`❌ Error fetching asset ${customerKey}:`, error.message);
   }
 }
-
 
 (async () => {
   try {
