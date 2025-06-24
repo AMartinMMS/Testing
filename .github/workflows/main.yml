@@ -31,3 +31,13 @@ jobs:
           SFMC_AUTH_BASE_URL: ${{ secrets.SFMC_AUTH_BASE_URL }}
           SFMC_REST_BASE_URL: ${{ secrets.SFMC_REST_BASE_URL }}
           SFMC_ASSET_KEY: ${{ secrets.SFMC_ASSET_KEY }}
+
+      - name: Commit and push response JSON
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git pull origin main --rebase
+          git add content/
+          git commit -m "Update SFMC HTML content" || echo "No changes to commit"
+          git push origin main
+        continue-on-error: true
